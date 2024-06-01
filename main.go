@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"referral-system/handler"
+	"referral-system/repository"
+	"referral-system/usecase"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -13,11 +16,11 @@ import (
 )
 
 // AppConfig contains the application configurations
-type AppConfig struct {
-	DB            *sql.DB
-	jwtSecret     []byte
-	encryptionKey []byte
-}
+// type AppConfig struct {
+// 	DB            *sql.DB
+// 	jwtSecret     []byte
+// 	encryptionKey []byte
+// }
 
 func main() {
 	err := godotenv.Load()
@@ -33,11 +36,23 @@ func main() {
 	defer db.Close()
 
 	// Initialize AppConfig with the database connection
-	appConfig := &AppConfig{
-		DB:            db,
-		jwtSecret:     []byte(os.Getenv("JWT_SECRET")),
-		encryptionKey: []byte(os.Getenv("ENCRYPTION_KEY")),
-	}
+	// appConfig := &AppConfig{
+	// 	DB:            db,
+	// 	jwtSecret:     []byte(os.Getenv("JWT_SECRET")),
+	// 	encryptionKey: []byte(os.Getenv("ENCRYPTION_KEY")),
+	// }
+
+	userRepo := repository.NewUserRepository(db)
+	roleRepo := repository.NewRoleRepository(db)
+	referralRepo := repository.NewReferralLinkRepository(db)
+	contributionRepo := repository.NewContributionRepository(db)
+	dbTransaction := repository.NewDBTransactionRepository(db)
+
+	// Initialize use cases
+	userUseCase := usecase.NewUserUsecase(dbTransaction, userRepo, roleRepo, referralRepo, contributionRepo)
+
+	// Initialize HTTP handlers
+	userHandler := handler.NewUserHandler(userUseCase)
 
 	// Initialize Echo router
 	e := echo.New()
@@ -47,7 +62,7 @@ func main() {
 	e.Use(echoMiddleware.Recover())
 
 	// Handlers
-	registerHandlers(e, appConfig)
+	registerHandlers(e, userHandler)
 
 	// Start server
 	fmt.Println("Server started on port 8080")
@@ -55,25 +70,9 @@ func main() {
 }
 
 // registerHandlers registers all HTTP handlers
-func registerHandlers(e *echo.Echo, appConfig *AppConfig) {
-	// customerRepo := repository.NewCustomerRepository(appConfig.DB)
-	// transactionRepo := repository.NewTransactionRepository(appConfig.DB)
-	// limitRepo := repository.NewLimitRepository(appConfig.DB)
-
-	// authHandler := handler.NewAuthHandler(customerRepo, appConfig.jwtSecret, appConfig.encryptionKey)
-	// transactionHandler := handler.NewTransactionHandler(transactionRepo, limitRepo)
-	// limitHandler := handler.NewLimitHandler(limitRepo, customerRepo)
-
-	// e.POST("/auth/register", authHandler.RegisterCustomer)
-	// e.POST("/auth/login", authHandler.LoginHandler)
-
-	// fundGroup := e.Group("/fund")
-	// fundGroup.Use(middleware.JWTWithConfig(middleware.JWTConfig{
-	// 	SigningKey: appConfig.jwtSecret,
-	// }))
-
-	// fundGroup.POST("/transaction", transactionHandler.CreateTransaction)
-	// fundGroup.POST("/limit", limitHandler.CreateLimit)
+func registerHandlers(e *echo.Echo, userHandler *handler.UserHandler) {
+	e.POST("/register", userHandler.RegisterUserGenerator)
+	e.POST("/register/:code", userHandler.RegisterUserContributor)
 }
 
 // composePostgresConnectionString creates the PostgreSQL connection string
