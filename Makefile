@@ -12,10 +12,6 @@ DATABASE_URL := postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_
 build:
 	docker-compose up --build  
 
-init:
-	go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest /
-
-
 run: 
 	go run main.go   
 
