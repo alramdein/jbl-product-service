@@ -18,6 +18,7 @@ type UserUsecase struct {
 	ReferralRepo     repository.IReferralLinkRepository
 	ContributionRepo repository.IContributionRepository
 	JWTSecret        string
+	ReferralLinkExp  time.Time
 }
 
 // NewUserRepository creates a new instance of userRepository
@@ -28,6 +29,7 @@ func NewUserUsecase(
 	ReferralRepo repository.IReferralLinkRepository,
 	ContributionRepo repository.IContributionRepository,
 	JWTSecret string,
+	ReferralLinkExp time.Time,
 ) *UserUsecase {
 	return &UserUsecase{
 		DbTransaction:    DbTransaction,
@@ -36,6 +38,7 @@ func NewUserUsecase(
 		ReferralRepo:     ReferralRepo,
 		ContributionRepo: ContributionRepo,
 		JWTSecret:        JWTSecret,
+		ReferralLinkExp:  ReferralLinkExp,
 	}
 }
 
@@ -102,7 +105,7 @@ func (u *UserUsecase) RegisterUserGenerator(ctx context.Context, req model.Regis
 		ID:          uuid.NewString(),
 		GeneratorID: newUser.ID,
 		Code:        util.GenerateUniqueCode(),
-		ExpiredAt:   time.Now().Add(7 * 24 * time.Hour),
+		ExpiredAt:   u.ReferralLinkExp,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}

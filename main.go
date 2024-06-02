@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
+	"referral-system/config"
 	"referral-system/handler"
 	"referral-system/middleware"
 	"referral-system/repository"
@@ -16,21 +16,19 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// AppConfig contains the application configurations
-// type AppConfig struct {
-// 	DB            *sql.DB
-// 	jwtSecret     []byte
-// 	encryptionKey []byte
-// }
-
 func main() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
+	cfg, err := config.GetConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Open a connection to the database
-	db, err := sql.Open("postgres", composePostgresConnectionString())
+	db, err := sql.Open("postgres", composePostgresConnectionString(cfg.Db))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,11 +40,6 @@ func main() {
 	}
 	fmt.Println("Database connection successful")
 
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		log.Fatal("Error JWT Secret required.")
-	}
-
 	userRepo := repository.NewUserRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
 	referralRepo := repository.NewReferralLinkRepository(db)
@@ -54,7 +47,7 @@ func main() {
 	dbTransaction := repository.NewDBTransactionRepository(db)
 
 	// Initialize use cases
-	userUseCase := usecase.NewUserUsecase(dbTransaction, userRepo, roleRepo, referralRepo, contributionRepo, jwtSecret)
+	userUseCase := usecase.NewUserUsecase(dbTransaction, userRepo, roleRepo, referralRepo, contributionRepo, cfg.JwtSecret, cfg.ReferralLinkExp)
 	referralLinkUsecase := usecase.NewReferralLinkUsecase(dbTransaction, referralRepo)
 
 	// Initialize HTTP handlers
@@ -69,7 +62,7 @@ func main() {
 	e.Use(echoMiddleware.Recover())
 
 	// Handlers
-	registerHandlers(e, jwtSecret, userHandler, referralLinkHandler)
+	registerHandlers(e, cfg.JwtSecret, userHandler, referralLinkHandler)
 
 	// Start server
 	fmt.Println("Server started on port 8080")
@@ -87,11 +80,11 @@ func registerHandlers(e *echo.Echo, jwtSecret string, userHandler *handler.UserH
 }
 
 // composePostgresConnectionString creates the PostgreSQL connection string
-func composePostgresConnectionString() string {
+func composePostgresConnectionString(cfg config.DbConfig) string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_NAME"))
+		cfg.DbUser,
+		cfg.DbPassword,
+		cfg.DbHost,
+		cfg.DbPort,
+		cfg.DbName)
 }
