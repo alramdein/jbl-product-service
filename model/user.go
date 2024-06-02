@@ -1,6 +1,13 @@
 package model
 
-import "time"
+import (
+	"regexp"
+	"time"
+)
+
+var (
+	EmailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+)
 
 // User :nodoc:
 type User struct {
@@ -22,15 +29,29 @@ type RegisterUserRequest struct {
 }
 
 // RegisterUserInput payload for usecase layer
-type RegisterUserInput struct {
+type RegisterUserGeneratorInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type RegisterUserContributorInput struct {
 	Email        string `json:"email"`
-	Password     string `json:"password"`
-	Role         string `json:"role"`
 	ReferralCode string `json:"referral_code"`
 }
 
 // RegisterUserResponse :nodoc:
-type RegisterUserResponse struct {
+type RegisterUserGeneratorResponse struct {
 	User         User          `json:"user"`
 	ReferralLink *ReferralLink `json:"referral_link,omitempty"`
+	Token        string        `json:"token"`
+}
+
+type RegisterUserContributorResponse struct {
+	User         User          `json:"user"`
+	ReferralLink *ReferralLink `json:"referral_link,omitempty"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }

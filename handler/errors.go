@@ -13,15 +13,17 @@ type CustomError struct {
 }
 
 var ErrorMap = map[error]int{
-	usecase.ErrEmailRequired:           http.StatusBadRequest,
-	usecase.ErrPasswordRequired:        http.StatusBadRequest,
-	usecase.ErrRoleRequired:            http.StatusBadRequest,
-	usecase.ErrReferalCodeRequired:     http.StatusBadRequest,
-	usecase.ErrEmailAlreadyExist:       http.StatusConflict,
-	usecase.ErrReferralCodeIsNotExisit: http.StatusBadRequest,
-	usecase.ErrInvalidRole:             http.StatusBadRequest,
-	usecase.ErrInvalidEmail:            http.StatusBadRequest,
-	usecase.ErrRoleNotFound:            http.StatusNotFound,
+	usecase.ErrEmailRequired:              http.StatusBadRequest,
+	usecase.ErrPasswordRequired:           http.StatusBadRequest,
+	usecase.ErrRoleRequired:               http.StatusBadRequest,
+	usecase.ErrReferalCodeRequired:        http.StatusBadRequest,
+	usecase.ErrEmailAlreadyExist:          http.StatusConflict,
+	usecase.ErrReferralCodeIsNotExisit:    http.StatusBadRequest,
+	usecase.ErrInvalidRole:                http.StatusBadRequest,
+	usecase.ErrInvalidEmail:               http.StatusBadRequest,
+	usecase.ErrRoleNotFound:               http.StatusNotFound,
+	usecase.ErrCantReferralToOwnCode:      http.StatusPreconditionFailed,
+	usecase.ErrCantMultipleSubmitReferral: http.StatusConflict,
 }
 
 func MapErrorToHTTPResponse(err error) *echo.HTTPError {

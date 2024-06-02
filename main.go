@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"referral-system/handler"
+	"referral-system/middleware"
 	"referral-system/repository"
 	"referral-system/usecase"
 
@@ -35,12 +36,16 @@ func main() {
 	}
 	defer db.Close()
 
-	// Initialize AppConfig with the database connection
-	// appConfig := &AppConfig{
-	// 	DB:            db,
-	// 	jwtSecret:     []byte(os.Getenv("JWT_SECRET")),
-	// 	encryptionKey: []byte(os.Getenv("ENCRYPTION_KEY")),
-	// }
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("Error connecting to the database: ", err)
+	}
+	fmt.Println("Database connection successful")
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("Error JWT Secret required.")
+	}
 
 	userRepo := repository.NewUserRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
@@ -49,10 +54,12 @@ func main() {
 	dbTransaction := repository.NewDBTransactionRepository(db)
 
 	// Initialize use cases
-	userUseCase := usecase.NewUserUsecase(dbTransaction, userRepo, roleRepo, referralRepo, contributionRepo)
+	userUseCase := usecase.NewUserUsecase(dbTransaction, userRepo, roleRepo, referralRepo, contributionRepo, jwtSecret)
+	referralLinkUsecase := usecase.NewReferralLinkUsecase(dbTransaction, referralRepo)
 
 	// Initialize HTTP handlers
 	userHandler := handler.NewUserHandler(userUseCase)
+	referralLinkHandler := handler.NewReferralHandler(referralLinkUsecase)
 
 	// Initialize Echo router
 	e := echo.New()
@@ -62,7 +69,7 @@ func main() {
 	e.Use(echoMiddleware.Recover())
 
 	// Handlers
-	registerHandlers(e, userHandler)
+	registerHandlers(e, jwtSecret, userHandler, referralLinkHandler)
 
 	// Start server
 	fmt.Println("Server started on port 8080")
@@ -70,9 +77,13 @@ func main() {
 }
 
 // registerHandlers registers all HTTP handlers
-func registerHandlers(e *echo.Echo, userHandler *handler.UserHandler) {
+func registerHandlers(e *echo.Echo, jwtSecret string, userHandler *handler.UserHandler, referralLinkHandler *handler.ReferralHandler) {
 	e.POST("/register", userHandler.RegisterUserGenerator)
 	e.POST("/register/:code", userHandler.RegisterUserContributor)
+
+	e.POST("/login", userHandler.Login)
+
+	e.POST("/referral-link", referralLinkHandler.GenerateReferralLink, middleware.JWTMiddleware(jwtSecret))
 }
 
 // composePostgresConnectionString creates the PostgreSQL connection string

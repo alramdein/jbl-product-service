@@ -68,3 +68,39 @@ func (r *ReferralLinkRepository) GetReferralLinkByCode(ctx context.Context, code
 	}
 	return &referralLink, nil
 }
+
+func (r *ReferralLinkRepository) GetReferralLinkByEmail(ctx context.Context, email string) (string, error) {
+	log := logrus.WithFields(logrus.Fields{
+		"trace": "repository.GetReferralCodeByEmail",
+		"ctx":   ctx,
+		"email": email,
+	})
+
+	query := `
+        SELECT rl.code
+        FROM referral_links rl
+        JOIN users u ON rl.generator_id = u.id
+        JOIN roles r ON u.role_id = r.id
+        WHERE u.email = $1 AND r.name = $2 AND rl.deleted_at IS NULL
+    `
+	var referralCode string
+	err := r.DB.QueryRowContext(ctx, query, email, model.GeneratorRole).Scan(&referralCode)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil // No referral code found
+		}
+		log.Error(err)
+		return "", err
+	}
+	return referralCode, nil
+}
+
+func (r *ReferralLinkRepository) DeleteReferralLinkByUserID(ctx context.Context, tx *sql.Tx, userID string) error {
+	query := `
+        UPDATE referral_links
+        SET deleted_at = $1
+        WHERE generator_id = $2 AND deleted_at IS NULL
+    `
+	_, err := tx.ExecContext(ctx, query, time.Now().UTC(), userID)
+	return err
+}

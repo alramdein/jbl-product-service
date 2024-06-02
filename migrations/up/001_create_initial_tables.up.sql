@@ -11,7 +11,7 @@ CREATE TABLE roles (
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(100) NOT NULL, -- since one email can be either generator or contirbutor
-    password TEXT NOT NULL,
+    password TEXT, -- since contributor doesn't require password
     role_id UUID NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,

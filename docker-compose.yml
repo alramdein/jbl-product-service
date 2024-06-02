@@ -13,7 +13,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: ["CMD-SHELL", '/usr/bin/psql -U your_user -h localhost -p 5432 -d your_database -c "select version();"']
 
   app:
     build: .

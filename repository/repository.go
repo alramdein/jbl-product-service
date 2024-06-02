@@ -14,6 +14,8 @@ type IUserRepository interface {
 type IReferralLinkRepository interface {
 	CreateReferralLink(ctx context.Context, tx *sql.Tx, user *model.ReferralLink) error
 	GetReferralLinkByCode(ctx context.Context, code string) (*model.ReferralLink, error)
+	GetReferralLinkByEmail(ctx context.Context, email string) (string, error)
+	DeleteReferralLinkByUserID(ctx context.Context, tx *sql.Tx, userID string) error
 }
 
 type IRoleRepository interface {
@@ -22,6 +24,7 @@ type IRoleRepository interface {
 
 type IContributionRepository interface {
 	CreateContribution(ctx context.Context, tx *sql.Tx, contribution *model.Contribution) error
+	GetContributionByEmailAndReferralCode(ctx context.Context, email string, referralCode string) (*model.Contribution, error)
 }
 
 type IDBTransactionRepository interface {

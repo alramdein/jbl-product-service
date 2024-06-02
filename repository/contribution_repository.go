@@ -67,3 +67,30 @@ func (c *ContributionRepository) GetReferralLinkByCode(ctx context.Context, code
 	}
 	return &referralLink, nil
 }
+
+func (c *ContributionRepository) GetContributionByEmailAndReferralCode(ctx context.Context, email string, referralCode string) (*model.Contribution, error) {
+	log := logrus.WithFields(logrus.Fields{
+		"trace":        "repository.GetContributionByEmailAndReferralCode",
+		"ctx":          ctx,
+		"email":        email,
+		"referralCode": referralCode,
+	})
+
+	query := `
+        SELECT c.id, c.referral_link_id, c.contributor_id, c.accessed_at, c.created_at, c.updated_at
+        FROM contributions c
+        JOIN referral_links rl ON c.referral_link_id = rl.id AND rl.code = $2
+        JOIN users u ON c.contributor_id = u.id AND u.email = $1 AND c.deleted_at IS NULL
+    `
+	var contribution model.Contribution
+	err := c.DB.QueryRowContext(ctx, query, email, referralCode).
+		Scan(&contribution.ID, &contribution.ReferralLinkID, &contribution.ContributorID, &contribution.AccessedAt, &contribution.CreatedAt, &contribution.UpdatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // No contribution found
+		}
+		log.Error(err)
+		return nil, err
+	}
+	return &contribution, nil
+}

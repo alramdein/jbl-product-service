@@ -6,5 +6,7 @@ import (
 )
 
 type IUserUsecase interface {
-	RegisterUser(ctx context.Context, req model.RegisterUserInput) (*model.RegisterUserResponse, error)
+	RegisterUserGenerator(ctx context.Context, req model.RegisterUserGeneratorInput) (*model.RegisterUserGeneratorResponse, error)
+	RegisterUserContributor(ctx context.Context, req model.RegisterUserContributorInput) (*model.RegisterUserContributorResponse, error)
+	Login(ctx context.Context, email, password string) (string, error)
 }
