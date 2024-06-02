@@ -116,7 +116,7 @@ func (u *UserUsecase) RegisterUserGenerator(ctx context.Context, req model.Regis
 		return nil, err
 	}
 
-	err = tx.Commit()
+	err = u.DbTransaction.Commit(ctx, tx)
 	if err != nil {
 		log.Error(err)
 		return nil, err
@@ -233,7 +233,7 @@ func (u *UserUsecase) RegisterUserContributor(ctx context.Context, req model.Reg
 		return nil, err
 	}
 
-	err = tx.Commit()
+	err = u.DbTransaction.Commit(ctx, tx)
 	if err != nil {
 		log.Error(err)
 		return nil, err

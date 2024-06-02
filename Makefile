@@ -28,11 +28,14 @@ tidy:
 	go mod tidy
 
 test:
-	go test ./...
+	go test -cover ./... -v
 
 mockgen:
-	mockgen -source=repository/contribution_repository.go -destination=mocks/mock_contribution_repository.go -package=mocks /
-	mockgen -source=repository/db_transaction_repository.go -destination=mocks/mock_db_transaction_repository.go -package=mocks
-	mockgen -source=repository/referral_link_repository.go -destination=mocks/mock_referral_link_repository.go -package=mocks
-	mockgen -source=repository/role_repository.go -destination=mocks/mock_role_repository.go -package=mocks /
-	mockgen -source=repository/user_repository.go -destination=mocks/mock_user_repository.go -package=mocks
+	mockgen -package=mocks -destination=mocks/mock_contribution_repository.go referral-system/repository IContributionRepository
+	mockgen -package=mocks -destination=mocks/db_transaction_repository.go referral-system/repository IDBTransactionRepository
+	mockgen -package=mocks -destination=mocks/referral_link_repository.go referral-system/repository IReferralLinkRepository
+	mockgen -package=mocks -destination=mocks/role_repository.go referral-system/repository IRoleRepository
+	mockgen -package=mocks -destination=mocks/user_repository.go referral-system/repository IUserRepository
+
+clear-mock:
+	rm -rf mocks

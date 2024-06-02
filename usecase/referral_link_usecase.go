@@ -66,7 +66,7 @@ func (u *referralLinkUsecase) GenerateReferralLink(ctx context.Context, userID s
 		return nil, err
 	}
 
-	err = tx.Commit()
+	err = u.DbTransaction.Commit(ctx, tx)
 	if err != nil {
 		log.Error(err)
 		return nil, err

@@ -29,4 +29,6 @@ type IContributionRepository interface {
 
 type IDBTransactionRepository interface {
 	BeginTx(ctx context.Context) (*sql.Tx, error)
+	Commit(ctx context.Context, tx *sql.Tx) error
+	Rollback(ctx context.Context, tx *sql.Tx) error
 }

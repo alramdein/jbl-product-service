@@ -1,3 +1,4 @@
 .env
 /mocks
+/gomock_*
 .DS_Store
