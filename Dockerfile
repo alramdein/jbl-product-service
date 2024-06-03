@@ -6,6 +6,7 @@ RUN apk add --no-cache make git bash postgresql-client
 
 # Install migrate CLI tool using go install
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 # Set the Current Working Directory inside the container
 WORKDIR /app

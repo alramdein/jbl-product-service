@@ -10,12 +10,23 @@ import (
 	"referral-system/repository"
 	"referral-system/usecase"
 
+	_ "referral-system/docs"
+
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	_ "github.com/lib/pq"
+	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
+// @title Referral System API
+// @version 1.0
+// @description Server for referral system.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name Alif Ramdani
+// @contact.url https://github.com/alramdein
+// @contact.email ramdanialif26@gmail.com
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -60,6 +71,9 @@ func main() {
 	// Middleware
 	e.Use(echoMiddleware.Logger())
 	e.Use(echoMiddleware.Recover())
+
+	// Serve Swagger UI
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	// Handlers
 	registerHandlers(e, cfg.JwtSecret, userHandler, referralLinkHandler)

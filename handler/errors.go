@@ -24,6 +24,7 @@ var ErrorMap = map[error]int{
 	usecase.ErrRoleNotFound:               http.StatusNotFound,
 	usecase.ErrCantReferralToOwnCode:      http.StatusPreconditionFailed,
 	usecase.ErrCantMultipleSubmitReferral: http.StatusConflict,
+	usecase.ErrInvalidCredentials:         http.StatusUnauthorized,
 }
 
 func MapErrorToHTTPResponse(err error) *echo.HTTPError {
@@ -34,5 +35,8 @@ func MapErrorToHTTPResponse(err error) *echo.HTTPError {
 			Message:    err.Error(),
 		})
 	}
-	return echo.NewHTTPError(http.StatusInternalServerError, "something went wrong")
+	return echo.NewHTTPError(http.StatusInternalServerError, CustomError{
+		StatusCode: http.StatusInternalServerError,
+		Message:    "something went wrong",
+	})
 }

@@ -39,3 +39,6 @@ mockgen:
 
 clear-mock:
 	rm -rf mocks
+
+swag:
+	swag init
