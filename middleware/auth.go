@@ -4,48 +4,36 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang-jwt/jwt"
-	"github.com/sirupsen/logrus"
+	"referral-system/handler"
+	"referral-system/util"
+
+	"github.com/labstack/echo/v4"
 )
 
-func JWTMiddleware(secretKey []byte) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Get the Authorization header
-			authHeader := r.Header.Get("Authorization")
+func JWTMiddleware(secret string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			authHeader := c.Request().Header.Get("Authorization")
 			if authHeader == "" {
-				http.Error(w, "Authorization header is required", http.StatusUnauthorized)
-				return
+				return echo.NewHTTPError(http.StatusUnauthorized, handler.CustomError{
+					StatusCode: http.StatusUnauthorized,
+					Message:    "missing or invalid token",
+				})
 			}
 
-			// Check if the token starts with "Bearer "
-			tokenString := strings.TrimSpace(authHeader)
-			if !strings.HasPrefix(tokenString, "Bearer ") {
-				http.Error(w, "Authorization header format must be Bearer {token}", http.StatusUnauthorized)
-				return
+			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+			claims, err := util.ValidateJWT(tokenString, secret)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusUnauthorized, handler.CustomError{
+					StatusCode: http.StatusUnauthorized,
+					Message:    "invalid token",
+				})
 			}
 
-			// Extract the token
-			tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+			c.Set("user_id", claims["user_id"])
+			c.Set("role_id", claims["role_id"])
 
-			// Parse the token
-			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-				// Validate the alg is what you expect
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, http.ErrAbortHandler
-				}
-				return secretKey, nil
-			})
-
-			// Check token validity
-			if err != nil || !token.Valid {
-				logrus.Error(err)
-				http.Error(w, "Invalid token", http.StatusUnauthorized)
-				return
-			}
-
-			// Pass the execution to the next handler
-			next.ServeHTTP(w, r)
-		})
+			return next(c)
+		}
 	}
 }

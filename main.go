@@ -4,40 +4,66 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
+	"referral-system/config"
+	"referral-system/handler"
+	"referral-system/middleware"
+	"referral-system/repository"
+	"referral-system/usecase"
+
+	_ "referral-system/docs"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	_ "github.com/lib/pq"
+	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
-// AppConfig contains the application configurations
-type AppConfig struct {
-	DB            *sql.DB
-	jwtSecret     []byte
-	encryptionKey []byte
-}
+// @title Referral System API
+// @version 1.0
+// @description Server for referral system.
+// @termsOfService http://swagger.io/terms/
 
+// @contact.name Alif Ramdani
+// @contact.url https://github.com/alramdein
+// @contact.email ramdanialif26@gmail.com
 func main() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
+	cfg, err := config.GetConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Open a connection to the database
-	db, err := sql.Open("postgres", composePostgresConnectionString())
+	db, err := sql.Open("postgres", composePostgresConnectionString(cfg.Db))
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	// Initialize AppConfig with the database connection
-	appConfig := &AppConfig{
-		DB:            db,
-		jwtSecret:     []byte(os.Getenv("JWT_SECRET")),
-		encryptionKey: []byte(os.Getenv("ENCRYPTION_KEY")),
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("Error connecting to the database: ", err)
 	}
+	fmt.Println("Database connection successful")
+
+	userRepo := repository.NewUserRepository(db)
+	roleRepo := repository.NewRoleRepository(db)
+	referralRepo := repository.NewReferralLinkRepository(db)
+	contributionRepo := repository.NewContributionRepository(db)
+	dbTransaction := repository.NewDBTransactionRepository(db)
+
+	// Initialize use cases
+	userUseCase := usecase.NewUserUsecase(dbTransaction, userRepo, roleRepo, referralRepo, contributionRepo, cfg.JwtSecret, cfg.ReferralLinkExp)
+	referralLinkUsecase := usecase.NewReferralLinkUsecase(dbTransaction, referralRepo)
+
+	// Initialize HTTP handlers
+	userHandler := handler.NewUserHandler(userUseCase)
+	referralLinkHandler := handler.NewReferralHandler(referralLinkUsecase)
 
 	// Initialize Echo router
 	e := echo.New()
@@ -46,8 +72,11 @@ func main() {
 	e.Use(echoMiddleware.Logger())
 	e.Use(echoMiddleware.Recover())
 
+	// Serve Swagger UI
+	e.GET("/swagger/*", echoSwagger.WrapHandler)
+
 	// Handlers
-	registerHandlers(e, appConfig)
+	registerHandlers(e, cfg.JwtSecret, userHandler, referralLinkHandler)
 
 	// Start server
 	fmt.Println("Server started on port 8080")
@@ -55,33 +84,21 @@ func main() {
 }
 
 // registerHandlers registers all HTTP handlers
-func registerHandlers(e *echo.Echo, appConfig *AppConfig) {
-	// customerRepo := repository.NewCustomerRepository(appConfig.DB)
-	// transactionRepo := repository.NewTransactionRepository(appConfig.DB)
-	// limitRepo := repository.NewLimitRepository(appConfig.DB)
+func registerHandlers(e *echo.Echo, jwtSecret string, userHandler *handler.UserHandler, referralLinkHandler *handler.ReferralHandler) {
+	e.POST("/register", userHandler.RegisterUserGenerator)
+	e.POST("/register/:code", userHandler.RegisterUserContributor)
 
-	// authHandler := handler.NewAuthHandler(customerRepo, appConfig.jwtSecret, appConfig.encryptionKey)
-	// transactionHandler := handler.NewTransactionHandler(transactionRepo, limitRepo)
-	// limitHandler := handler.NewLimitHandler(limitRepo, customerRepo)
+	e.POST("/login", userHandler.Login)
 
-	// e.POST("/auth/register", authHandler.RegisterCustomer)
-	// e.POST("/auth/login", authHandler.LoginHandler)
-
-	// fundGroup := e.Group("/fund")
-	// fundGroup.Use(middleware.JWTWithConfig(middleware.JWTConfig{
-	// 	SigningKey: appConfig.jwtSecret,
-	// }))
-
-	// fundGroup.POST("/transaction", transactionHandler.CreateTransaction)
-	// fundGroup.POST("/limit", limitHandler.CreateLimit)
+	e.POST("/referral-link", referralLinkHandler.GenerateReferralLink, middleware.JWTMiddleware(jwtSecret))
 }
 
 // composePostgresConnectionString creates the PostgreSQL connection string
-func composePostgresConnectionString() string {
+func composePostgresConnectionString(cfg config.DbConfig) string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_NAME"))
+		cfg.DbUser,
+		cfg.DbPassword,
+		cfg.DbHost,
+		cfg.DbPort,
+		cfg.DbName)
 }

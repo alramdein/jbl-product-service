@@ -11,18 +11,18 @@ services:
       - "25432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", '/usr/bin/psql -U your_user -h localhost -p 5432 -d your_database -c "select version();"']
 
   app:
     build: .
     ports:
       - "8080:8080"
     depends_on:
-      - db
-    environment:
-      DB_HOST: db
-      DB_USER: your_user
-      DB_PASSWORD: your_password
-      DB_NAME: your_database
-
+      db:
+        condition: service_healthy
+    command: ["/app/startup.sh"]
+  
 volumes:
   pgdata:
