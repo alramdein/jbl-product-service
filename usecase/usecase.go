@@ -2,11 +2,13 @@ package usecase
 
 import (
 	"context"
-	"referral-system/model"
+	"product-service/model"
 )
 
-type IUserUsecase interface {
-	RegisterUserGenerator(ctx context.Context, req model.RegisterUserGeneratorInput) (*model.RegisterUserGeneratorResponse, error)
-	RegisterUserContributor(ctx context.Context, req model.RegisterUserContributorInput) (*model.RegisterUserContributorResponse, error)
-	Login(ctx context.Context, email, password string) (string, error)
+type IProductUsecase interface {
+	GetProducts(ctx context.Context, limit, offset int) ([]*model.Product, error)
+	GetProductByID(ctx context.Context, id string) (*model.Product, error)
+	CreateProduct(ctx context.Context, product model.Product) error
+	UpdateProduct(ctx context.Context, product model.Product) error
+	DeleteProduct(ctx context.Context, id string) error
 }

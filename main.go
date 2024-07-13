@@ -4,101 +4,45 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"referral-system/config"
-	"referral-system/handler"
-	"referral-system/middleware"
-	"referral-system/repository"
-	"referral-system/usecase"
+	"product-service/config"
+	"product-service/handler"
+	"product-service/repository"
+	"product-service/usecase"
 
-	_ "referral-system/docs"
-
-	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
-	echoMiddleware "github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v4/middleware"
 	_ "github.com/lib/pq"
-	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
-// @title Referral System API
-// @version 1.0
-// @description Server for referral system.
-// @termsOfService http://swagger.io/terms/
-
-// @contact.name Alif Ramdani
-// @contact.url https://github.com/alramdein
-// @contact.email ramdanialif26@gmail.com
 func main() {
-	err := godotenv.Load()
+	conf, err := config.LoadConfig()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatalf("Could not load config: %v", err)
 	}
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		conf.Db.Host, conf.Db.Port, conf.Db.User, conf.Db.Password, conf.Db.Name, conf.Db.SSLMode)
 
-	cfg, err := config.GetConfig()
+	fmt.Println(connStr)
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Open a connection to the database
-	db, err := sql.Open("postgres", composePostgresConnectionString(cfg.Db))
-	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Could not connect to the database: %v", err)
 	}
 	defer db.Close()
 
 	err = db.Ping()
 	if err != nil {
-		log.Fatal("Error connecting to the database: ", err)
+		log.Fatalf("Could not ping the database: %v", err)
 	}
-	fmt.Println("Database connection successful")
 
-	userRepo := repository.NewUserRepository(db)
-	roleRepo := repository.NewRoleRepository(db)
-	referralRepo := repository.NewReferralLinkRepository(db)
-	contributionRepo := repository.NewContributionRepository(db)
-	dbTransaction := repository.NewDBTransactionRepository(db)
+	productRepo := repository.NewProductRepository(db)
+	productUsecase := usecase.NewProductUsecase(productRepo)
 
-	// Initialize use cases
-	userUseCase := usecase.NewUserUsecase(dbTransaction, userRepo, roleRepo, referralRepo, contributionRepo, cfg.JwtSecret, cfg.ReferralLinkExp)
-	referralLinkUsecase := usecase.NewReferralLinkUsecase(dbTransaction, referralRepo)
-
-	// Initialize HTTP handlers
-	userHandler := handler.NewUserHandler(userUseCase)
-	referralLinkHandler := handler.NewReferralHandler(referralLinkUsecase)
-
-	// Initialize Echo router
 	e := echo.New()
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
 
-	// Middleware
-	e.Use(echoMiddleware.Logger())
-	e.Use(echoMiddleware.Recover())
+	handler.NewProductHandler(e, productUsecase)
 
-	// Serve Swagger UI
-	e.GET("/swagger/*", echoSwagger.WrapHandler)
-
-	// Handlers
-	registerHandlers(e, cfg.JwtSecret, userHandler, referralLinkHandler)
-
-	// Start server
-	fmt.Println("Server started on port 8080")
-	e.Start(":8080")
-}
-
-// registerHandlers registers all HTTP handlers
-func registerHandlers(e *echo.Echo, jwtSecret string, userHandler *handler.UserHandler, referralLinkHandler *handler.ReferralHandler) {
-	e.POST("/register", userHandler.RegisterUserGenerator)
-	e.POST("/register/:code", userHandler.RegisterUserContributor)
-
-	e.POST("/login", userHandler.Login)
-
-	e.POST("/referral-link", referralLinkHandler.GenerateReferralLink, middleware.JWTMiddleware(jwtSecret))
-}
-
-// composePostgresConnectionString creates the PostgreSQL connection string
-func composePostgresConnectionString(cfg config.DbConfig) string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		cfg.DbUser,
-		cfg.DbPassword,
-		cfg.DbHost,
-		cfg.DbPort,
-		cfg.DbName)
+	log.Println("Server running on port 8080")
+	e.Logger.Fatal(e.Start(":8080"))
 }

@@ -2,7 +2,7 @@ package handler
 
 import (
 	"net/http"
-	"referral-system/usecase"
+	"product-service/usecase"
 
 	"github.com/labstack/echo/v4"
 )

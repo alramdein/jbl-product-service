@@ -1,58 +1,48 @@
 package config
 
 import (
-	"errors"
+	"log"
 	"os"
-	"referral-system/util"
-	"time"
 
-	"github.com/labstack/gommon/log"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Db              DbConfig
-	JwtSecret       string
-	ReferralLinkExp time.Time
+	Db        DbConfig
+	JwtSecret string
 }
 
 type DbConfig struct {
-	DbHost     string
-	DbPort     string
-	DbUser     string
-	DbPassword string
-	DbName     string
-	DbSSLMode  string
+	Host     string
+	Port     string
+	User     string
+	Password string
+	Name     string
+	SSLMode  string
 }
 
-func GetConfig() (*Config, error) {
+func LoadConfig() (*Config, error) {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
 	db := DbConfig{
-		DbHost:     os.Getenv("DB_HOST"),
-		DbPort:     os.Getenv("DB_PORT"),
-		DbUser:     os.Getenv("DB_USER"),
-		DbPassword: os.Getenv("DB_PASSWORD"),
-		DbName:     os.Getenv("DB_NAME"),
-		DbSSLMode:  os.Getenv("DB_SSLMODE"),
+		Host:     os.Getenv("DB_HOST"),
+		Port:     os.Getenv("DB_PORT"),
+		User:     os.Getenv("DB_USER"),
+		Password: os.Getenv("DB_PASSWORD"),
+		Name:     os.Getenv("DB_NAME"),
+		SSLMode:  os.Getenv("DB_SSLMODE"),
 	}
 
 	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		return nil, errors.New("jwt secret required")
-	}
-
-	now := time.Now().UTC()
-	str := os.Getenv("REFERRAL_LINK_EXP")
-	refferalLinkExp, err := util.ParseDurationString(str)
-	if err != nil {
-		log.Error(err)
-		return nil, errors.New("failed to get config jwt referral link expiration")
-	}
-	if refferalLinkExp.IsZero() {
-		refferalLinkExp = now.Add(DefaultReferralLinkExp)
-	}
+	// if jwtSecret == "" {
+	// 	return nil, errors.New("jwt secret required")
+	// }
 
 	return &Config{
-		Db:              db,
-		JwtSecret:       jwtSecret,
-		ReferralLinkExp: refferalLinkExp,
+		Db:        db,
+		JwtSecret: jwtSecret,
 	}, nil
 }

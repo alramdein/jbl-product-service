@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"referral-system/handler"
-	"referral-system/util"
+	"product-service/handler"
+	"product-service/util"
 
 	"github.com/labstack/echo/v4"
 )
