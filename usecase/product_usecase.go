@@ -7,6 +7,7 @@ import (
 	"product-service/repository"
 
 	"github.com/google/uuid"
+	"github.com/labstack/gommon/log"
 )
 
 type productUsecase struct {
@@ -20,6 +21,7 @@ func NewProductUsecase(repo repository.IProductRepository) IProductUsecase {
 func (u *productUsecase) GetProducts(ctx context.Context, limit, offset int) ([]*model.Product, error) {
 	products, err := u.productRepo.GetProducts(ctx, limit, offset)
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 

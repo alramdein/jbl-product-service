@@ -14,15 +14,24 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", '/usr/bin/psql -U your_user -h localhost -p 5432 -d your_database -c "select version();"']
+    networks:
+      - jubelio_networks
 
-  app:
+  product-service:
     build: .
+    container_name: product-service
     ports:
       - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
     command: ["/app/startup.sh"]
+    networks:
+      - jubelio_networks
+
+networks:
+  jubelio_networks:
+    external: true
   
 volumes:
   pgdata:

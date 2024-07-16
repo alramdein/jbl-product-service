@@ -14,7 +14,7 @@ type ProductHandler struct {
 	Usecase usecase.IProductUsecase
 }
 
-func NewProductHandler(e *echo.Echo, u usecase.IProductUsecase) {
+func NewProductHandler(e *echo.Group, u usecase.IProductUsecase) {
 	handler := &ProductHandler{
 		Usecase: u,
 	}

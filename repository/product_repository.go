@@ -21,7 +21,7 @@ func (r *ProductRepository) GetProducts(ctx context.Context, limit, offset int) 
 	}
 	defer rows.Close()
 
-	var products []*model.Product
+	products := []*model.Product{}
 	for rows.Next() {
 		var product model.Product
 		if err := rows.Scan(&product.ID, &product.Name, &product.SKU, &product.Image, &product.Price); err != nil {
